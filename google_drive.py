@@ -28,6 +28,13 @@ def get_drive_service():
             logger.error("GOOGLE_DRIVE_CREDENTIALS not set")
             return None
         
+        # Handle single quotes from env var
+        if credentials_json.startswith("'") and credentials_json.endswith("'"):
+            credentials_json = credentials_json[1:-1]
+        
+        # Replace single quotes with double quotes if needed
+        credentials_json = credentials_json.replace("'", '"')
+        
         creds_info = json.loads(credentials_json)
         credentials = service_account.Credentials.from_service_account_info(
             creds_info,
@@ -55,6 +62,10 @@ def download_all_graphml_files():
     """Download all GraphML files from Google Drive"""
     data_dir = Path('data')
     data_dir.mkdir(exist_ok=True)
+    
+    # Create cache directory
+    cache_dir = data_dir / 'cache'
+    cache_dir.mkdir(exist_ok=True)
     
     service = get_drive_service()
     if not service:
