@@ -38,7 +38,12 @@ REGION_INDEX_PATH = DATA_DIR / "region_index.json"   # generated automatically
 
 CACHE_DIR = DATA_DIR / "cache"
 
-CACHE_DIR.mkdir(exist_ok=True)
+# Ensure directories exist
+try:
+    DATA_DIR.mkdir(exist_ok=True)
+    CACHE_DIR.mkdir(exist_ok=True)
+except Exception as e:
+    LOG.warning(f"Could not create directories: {e}")
 
 
 
