@@ -2,10 +2,10 @@
 nixPkgs = ["python310", "gcc"]
 
 [phases.install]
-cmds = ["pip install -r requirements.txt"]
+cmds = ["python3 -m pip install -r requirements.txt"]
 
 [phases.build]
 cmds = ["echo 'Build complete'"]
 
 [start]
-cmd = "uvicorn routing_service:app --host 0.0.0.0 --port 8080"
+cmd = "python3 -m uvicorn routing_service:app --host 0.0.0.0 --port 8080"
