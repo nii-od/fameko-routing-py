@@ -28,25 +28,33 @@ def get_drive_service():
             logger.error("GOOGLE_DRIVE_CREDENTIALS not set")
             return None
         
-        # Strip whitespace and newlines
+        # Strip whitespace
         credentials_json = credentials_json.strip()
         
-        # Handle single quotes wrapper from env var
+        # Handle wrapper quotes from env var - Railway often wraps JSON in single quotes
         if credentials_json.startswith("'") and credentials_json.endswith("'"):
             credentials_json = credentials_json[1:-1]
         if credentials_json.startswith('"') and credentials_json.endswith('"'):
             credentials_json = credentials_json[1:-1]
         
         # Replace Python dict style single quotes with JSON double quotes
-        # Only replace quotes around keys and string values, not within values
         import re
-        # Replace single quotes that are used as JSON delimiters
+        # Replace single quotes around keys
         credentials_json = re.sub(r"'([^']+)'\s*:", r'"\1":', credentials_json)
+        # Replace single quotes around string values (but not inside the private key)
+        # This is tricky - let's try a different approach: eval as Python literal if JSON fails
         
         logger.info(f"Credentials JSON length: {len(credentials_json)}")
         logger.info(f"First 100 chars: {credentials_json[:100]}")
         
-        creds_info = json.loads(credentials_json)
+        # Try parsing as JSON first
+        try:
+            creds_info = json.loads(credentials_json)
+        except json.JSONDecodeError as json_err:
+            logger.warning(f"JSON parse failed: {json_err}, trying Python literal eval")
+            # Try as Python dict literal
+            import ast
+            creds_info = ast.literal_eval(credentials_json)
         credentials = service_account.Credentials.from_service_account_info(
             creds_info,
             scopes=['https://www.googleapis.com/auth/drive.readonly']
