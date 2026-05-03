@@ -499,7 +499,46 @@ async def get_distance(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-# ===================== WEBSOCKET ENDPOINT =====================
+# ===================== WEBSOCKET ENDPOINTS =====================
+
+# Store connected driver WebSockets
+connected_drivers: Dict[str, WebSocket] = {}
+
+@app.websocket("/ws/driver/{driver_id}")
+async def websocket_driver(websocket: WebSocket, driver_id: str):
+    """
+    WebSocket endpoint for driver real-time location updates
+    Client sends: {"lat": float, "lng": float, "heading": float, "timestamp": int}
+    Server can broadcast updates to other services
+    """
+    await websocket.accept()
+    connected_drivers[driver_id] = websocket
+    logger.info(f"[WS] Driver {driver_id} connected to routing service")
+    
+    try:
+        while True:
+            # Receive location update from driver
+            data = await websocket.receive_text()
+            location_data = json.loads(data)
+            
+            logger.debug(f"[WS] Location from driver {driver_id}: {location_data}")
+            
+            # Echo back confirmation
+            await websocket.send_json({
+                "status": "received",
+                "driver_id": driver_id,
+                "timestamp": datetime.utcnow().isoformat()
+            })
+    
+    except WebSocketDisconnect:
+        logger.info(f"[WS] Driver {driver_id} disconnected")
+        if driver_id in connected_drivers:
+            del connected_drivers[driver_id]
+    except Exception as e:
+        logger.error(f"[WS] Driver {driver_id} error: {e}")
+        if driver_id in connected_drivers:
+            del connected_drivers[driver_id]
+
 
 @app.websocket("/ws/route")
 async def websocket_route(websocket: WebSocket):
