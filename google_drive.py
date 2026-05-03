@@ -28,12 +28,23 @@ def get_drive_service():
             logger.error("GOOGLE_DRIVE_CREDENTIALS not set")
             return None
         
-        # Handle single quotes from env var
+        # Strip whitespace and newlines
+        credentials_json = credentials_json.strip()
+        
+        # Handle single quotes wrapper from env var
         if credentials_json.startswith("'") and credentials_json.endswith("'"):
             credentials_json = credentials_json[1:-1]
+        if credentials_json.startswith('"') and credentials_json.endswith('"'):
+            credentials_json = credentials_json[1:-1]
         
-        # Replace single quotes with double quotes if needed
-        credentials_json = credentials_json.replace("'", '"')
+        # Replace Python dict style single quotes with JSON double quotes
+        # Only replace quotes around keys and string values, not within values
+        import re
+        # Replace single quotes that are used as JSON delimiters
+        credentials_json = re.sub(r"'([^']+)'\s*:", r'"\1":', credentials_json)
+        
+        logger.info(f"Credentials JSON length: {len(credentials_json)}")
+        logger.info(f"First 100 chars: {credentials_json[:100]}")
         
         creds_info = json.loads(credentials_json)
         credentials = service_account.Credentials.from_service_account_info(
